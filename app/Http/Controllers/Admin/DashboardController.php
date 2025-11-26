@@ -11,28 +11,34 @@ use App\Models\StudentAttendance;
 class DashboardController extends Controller
 {
     public function index()
-    {
-        $teachersCount = Teacher::count();
-        $studentsCount = Student::count();
-        $classesCount  = SchoolClass::count();
+{
+    $totalTeachers = Teacher::count();
+    $totalStudents = Student::count();
+    $totalClasses  = SchoolClass::count();
 
-        $today = now()->toDateString();
+    $today = now()->toDateString();
 
-        $totalStudentsToday = Student::count();
-        $presentStudentsToday = StudentAttendance::where('date', $today)
-            ->where('status', 'hadir')
-            ->distinct('student_id')
-            ->count('student_id');
+    $todayAttendances = StudentAttendance::where('date', $today)->get();
 
-        $presentPercentage = $totalStudentsToday > 0
-            ? round(($presentStudentsToday / $totalStudentsToday) * 100, 1)
-            : 0;
+    $totalStudentsToday = $totalStudents; // atau bisa dihitung hanya siswa aktif
+    $presentStudents    = $todayAttendances->where('status', 'hadir')
+        ->pluck('student_id')->unique()->count();
 
-        return view('admin.dashboard', compact(
-            'teachersCount',
-            'studentsCount',
-            'classesCount',
-            'presentPercentage'
-        ));
+    $todayStudentPresentPercentage = $totalStudentsToday > 0
+        ? round(($presentStudents / $totalStudentsToday) * 100, 1)
+        : 0;
+
+    $latestStudentAttendances = StudentAttendance::with(['student', 'class'])
+        ->orderBy('date', 'desc')
+        ->limit(10)
+        ->get();
+
+    return view('admin.dashboard', compact(
+        'totalTeachers',
+        'totalStudents',
+        'totalClasses',
+        'todayStudentPresentPercentage',
+        'latestStudentAttendances'
+    ));
     }
 }
