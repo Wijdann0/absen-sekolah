@@ -8,6 +8,7 @@ use App\Models\StudentAttendance;
 use App\Models\TeacherAttendance;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 class AttendanceController extends Controller
 {
@@ -29,6 +30,8 @@ public function create(SchoolClass $class, Request $request)
     }
 
     $date = $request->query('date', now()->toDateString());
+
+   
 
     $class->load('students');
 
@@ -128,4 +131,37 @@ public function store(SchoolClass $class, Request $request)
 
         return back()->with('success', 'Absen pulang berhasil.');
     }
+    public function report(SchoolClass $class, Request $request)
+{
+    $teacher = Auth::user()->teacher;
+
+    // pastikan guru memang mengampu kelas ini
+    if (!$teacher->teachingClasses->contains('id', $class->id)) {
+        abort(403);
+    }
+
+    // filter tanggal (default: bulan ini)
+    $startDate = $request->query('start_date');
+    $endDate   = $request->query('end_date');
+
+    if (!$startDate || !$endDate) {
+        $startDate = Carbon::now()->startOfMonth()->toDateString();
+        $endDate   = Carbon::now()->endOfMonth()->toDateString();
+    }
+
+    $attendances = StudentAttendance::with('student')
+        ->where('class_id', $class->id)
+        ->whereBetween('date', [$startDate, $endDate])
+        ->orderBy('date')
+        ->orderBy('student_id')
+        ->get();
+
+    return view('teacher.attendance.report', [
+        'class'       => $class,
+        'attendances' => $attendances,
+        'startDate'   => $startDate,
+        'endDate'     => $endDate,
+    ]);
+}
+
 }

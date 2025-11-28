@@ -5,48 +5,72 @@ namespace App\Http\Controllers\Student;
 use App\Http\Controllers\Controller;
 use App\Models\StudentAttendance;
 use Illuminate\Http\Request;
+use App\Models\AttendanceSetting;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
 {
-    public function index()
-    {
-        $user = Auth::user();
-        $student = $user->student;
+   public function index()
+{
+    $user = Auth::user();
+    $student = $user->student;
 
-        // Kalau user belum punya data murid, jangan 500, tapi redirect sopan
-        if (!$student) {
-            return redirect()->route('redirect.after.login')
-                ->with('error', 'Akun ini belum terhubung dengan data murid. Silakan hubungi admin.');
-        }
-
-        $today = now()->toDateString();
-
-        $todayAttendance = StudentAttendance::where('student_id', $student->id)
-            ->where('date', $today)
-            ->first();
-
-        $month = now()->month;
-        $year  = now()->year;
-
-        $monthly = StudentAttendance::where('student_id', $student->id)
-            ->whereYear('date', $year)
-            ->whereMonth('date', $month)
-            ->get();
-
-        $totalDays   = $monthly->count();
-        $presentDays = $monthly->where('status', 'hadir')->count();
-
-        $presentPercentage = $totalDays > 0
-            ? round(($presentDays / $totalDays) * 100, 1)
-            : 0;
-
-        return view('student.dashboard', compact(
-            'student',
-            'todayAttendance',
-            'presentPercentage'
-        ));
+    if (!$student) {
+        return redirect()->route('redirect.after.login')
+            ->with('error', 'Akun ini belum terhubung dengan data murid.');
     }
+
+    $today = now()->toDateString();
+
+    $todayAttendance = StudentAttendance::where('student_id', $student->id)
+        ->where('date', $today)
+        ->first();
+
+    $month = now()->month;
+    $year  = now()->year;
+
+    $monthly = StudentAttendance::where('student_id', $student->id)
+        ->whereYear('date', $year)
+        ->whereMonth('date', $month)
+        ->get();
+
+    $totalDays   = $monthly->count();
+    $presentDays = $monthly->where('status', 'hadir')->count();
+    $presentPercentage = $totalDays > 0
+        ? round(($presentDays / $totalDays) * 100, 1)
+        : 0;
+
+    // === Pengaturan jam absensi ===
+    $setting = AttendanceSetting::first();
+    $startTime = $setting?->student_start_time ?? '06:00:00';
+    $endTime   = $setting?->student_end_time ?? '08:00:00';
+
+    $now   = now();
+    $start = Carbon::createFromTimeString($startTime, config('app.timezone'));
+    $end   = Carbon::createFromTimeString($endTime, config('app.timezone'));
+
+    $beforeStart = $now->lt($start);
+    $afterEnd    = $now->gt($end);
+    $absenDibuka = $now->between($start, $end);
+
+    // untuk countdown
+    $secondsToOpen = $beforeStart ? $now->diffInSeconds($start, false) : null;
+    $secondsToClose = $absenDibuka ? $now->diffInSeconds($end, false) : null;
+
+    return view('student.dashboard', compact(
+        'student',
+        'todayAttendance',
+        'presentPercentage',
+        'beforeStart',
+        'afterEnd',
+        'absenDibuka',
+        'startTime',
+        'endTime',
+        'secondsToOpen',
+        'secondsToClose'
+    ));
+}
 
     public function history(Request $request)
     {
@@ -75,30 +99,42 @@ class DashboardController extends Controller
         ));
     }
 
-    public function checkIn()
-    {
-        $user = Auth::user();
-        $student = $user->student;
+public function checkIn()
+{
+    $user = Auth::user();
+    $student = $user->student;
 
-        if (!$student || !$student->class_id) {
-            return back()->with('error', 'Data murid atau kelas belum lengkap. Hubungi admin.');
-        }
-
-        $today = now()->toDateString();
-
-StudentAttendance::updateOrCreate(
-    [
-        'student_id' => $student->id,
-        'class_id'   => $student->class_id,
-        'date'       => $today,
-    ],
-    [
-        'teacher_id' => null,      // boleh null kalau kolom sudah nullable
-        'status'     => 'hadir',
-    ]
-);
-
-
-        return back()->with('success', 'Absen hari ini berhasil direkam.');
+    if (!$student || !$student->class_id) {
+        return back()->with('error', 'Data murid atau kelas belum lengkap. Hubungi admin.');
     }
+
+    $setting = AttendanceSetting::first();
+    $startTime = $setting?->student_start_time ?? '06:00:00';
+    $endTime   = $setting?->student_end_time ?? '08:00:00';
+
+    $now   = now();
+    $start = \Carbon\Carbon::createFromTimeString($startTime, config('app.timezone'));
+    $end   = \Carbon\Carbon::createFromTimeString($endTime, config('app.timezone'));
+
+    if (! $now->between($start, $end)) {
+        return back()->with('error', "Absensi hanya dibuka pukul " . substr($startTime,0,5) . " - " . substr($endTime,0,5) . ".");
+    }
+
+    $today = now()->toDateString();
+
+    StudentAttendance::updateOrCreate(
+        [
+            'student_id' => $student->id,
+            'class_id'   => $student->class_id,
+            'date'       => $today,
+        ],
+        [
+            'teacher_id' => null,
+            'status'     => 'hadir',
+        ]
+    );
+
+    return back()->with('success', 'Absen hari ini berhasil direkam.');
+}
+
 }

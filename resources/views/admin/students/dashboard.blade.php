@@ -30,22 +30,59 @@
                 {{ now()->translatedFormat('d F Y') }}
             </p>
 
-            <div class="mt-6">
-                @if(!$todayAttendance || $todayAttendance->status !== 'hadir')
-                    <form action="{{ route('student.attendance.checkin') }}" method="POST"
-                          onsubmit="return confirm('Absen sekarang?');">
-                        @csrf
-                        <button
-                            class="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 rounded-xl text-sm font-semibold shadow-lg">
-                            Absen Hadir Sekarang
-                        </button>
-                    </form>
-                @else
-                    <span class="inline-block px-4 py-1 bg-emerald-300 rounded-full text-slate-800 text-xs font-semibold shadow">
-                        Kamu sudah absen hari ini
-                    </span>
+         @php
+    // $beforeStart, $afterEnd, $absenDibuka, $startTime, $endTime, $secondsToOpen, $secondsToClose
+    $startLabel = substr($startTime, 0, 5);
+    $endLabel   = substr($endTime, 0, 5);
+@endphp
+
+<div class="mt-6">
+    @if(!$todayAttendance || $todayAttendance->status !== 'hadir')
+
+        @if($absenDibuka)
+            {{-- ABSEN SEDANG DIBUKA --}}
+            <form action="{{ route('student.attendance.checkin') }}" method="POST"
+                  onsubmit="return confirm('Absen sekarang?');">
+                @csrf
+                <button
+                    class="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 rounded-xl text-sm font-semibold shadow-lg text-white">
+                    Absen Hadir Sekarang
+                </button>
+            </form>
+
+            @if($secondsToClose !== null)
+                <p class="mt-3 text-xs text-white/80" id="countdown-text">
+                    Absensi akan ditutup dalam <span class="font-semibold" id="countdown-timer"></span>
+                </p>
+            @endif
+
+        @elseif($beforeStart)
+            {{-- BELUM DIBUKA --}}
+            <div class="inline-block px-4 py-2 rounded-xl bg-blue-50 border border-blue-200 text-xs text-blue-800 shadow-sm">
+                Absensi <strong>belum dibuka</strong>.<br>
+                Dibuka pukul <strong>{{ $startLabel }}</strong>.
+                @if($secondsToOpen !== null)
+                    <div class="mt-1">
+                        Dibuka dalam <span id="countdown-timer" class="font-semibold"></span>
+                    </div>
                 @endif
             </div>
+
+        @elseif($afterEnd)
+            {{-- SUDAH DITUTUP --}}
+            <div class="inline-block px-4 py-2 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800 shadow-sm">
+                Absensi <strong>sudah ditutup</strong>.<br>
+                Ditutup pukul <strong>{{ $endLabel }}</strong>.
+            </div>
+        @endif
+
+    @else
+        <span class="inline-block px-4 py-1 bg-emerald-300 rounded-full text-slate-800 text-xs font-semibold shadow">
+            Kamu sudah absen hari ini
+        </span>
+    @endif
+</div>
+
         </div>
 
         {{-- Persentase bulan ini --}}
@@ -75,4 +112,34 @@
     </div>
 
 </div>
+@section('scripts')
+<script>
+    (function () {
+        // ambil data dari blade
+        let secondsToOpen  = @json($secondsToOpen);
+        let secondsToClose = @json($secondsToClose);
+
+        let totalSeconds = secondsToOpen ?? secondsToClose;
+        if (totalSeconds === null) return;
+
+        const timerEl = document.getElementById('countdown-timer');
+        if (!timerEl) return;
+
+        function formatTime(sec) {
+            if (sec < 0) sec = 0;
+            const m = Math.floor(sec / 60);
+            const s = sec % 60;
+            return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+        }
+
+        timerEl.textContent = formatTime(totalSeconds);
+
+        setInterval(() => {
+            totalSeconds--;
+            if (totalSeconds < 0) totalSeconds = 0;
+            timerEl.textContent = formatTime(totalSeconds);
+        }, 1000);
+    })();
+</script>
 @endsection
+

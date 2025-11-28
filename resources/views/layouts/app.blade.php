@@ -53,6 +53,11 @@
                        class="block px-3 py-2 rounded-lg hover:bg-white/10 @if(request()->routeIs('admin.reports.teachers')) bg-white/15 @endif">
                         Laporan Absensi Guru
                     </a>
+                    <a href="{{ route('admin.settings.attendance.edit') }}"
+                        class="block px-3 py-2 rounded-lg hover:bg-white/10 @if(request()->routeIs('admin.settings.attendance.*')) bg-white/15 @endif">
+                        Pengaturan Absensi
+                    </a>
+
                 @elseif(auth()->user()->isTeacher())
                     <p class="text-[11px] uppercase tracking-wide text-indigo-100/80 mb-1">Guru</p>
                     <a href="{{ route('teacher.dashboard') }}"

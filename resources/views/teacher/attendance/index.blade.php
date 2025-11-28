@@ -21,10 +21,17 @@
                     <td class="border px-2 py-1">{{ $class->name }}</td>
                     <td class="border px-2 py-1">{{ $class->grade }}</td>
                     <td class="border px-2 py-1">{{ $class->students_count }}</td>
-                    <td class="border px-2 py-1">
+                    <td class="border px-2 py-1 space-x-2">
+                        {{-- Input absensi hari ini --}}
                         <a href="{{ route('teacher.attendance.students.create', ['class' => $class->id, 'date' => now()->toDateString()]) }}"
                            class="text-blue-600 text-xs hover:underline">
                             Input Absensi Hari Ini
+                        </a>
+
+                        {{-- Laporan absensi --}}
+                        <a href="{{ route('teacher.attendance.students.report', ['class' => $class->id]) }}"
+                           class="text-emerald-600 text-xs hover:underline">
+                            Laporan Absensi
                         </a>
                     </td>
                 </tr>

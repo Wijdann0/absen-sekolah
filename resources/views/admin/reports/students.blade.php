@@ -67,7 +67,7 @@
                     <th class="border px-2 py-1">NIS</th>
                     <th class="border px-2 py-1">Nama Murid</th>
                     <th class="border px-2 py-1">Status</th>
-                    <th class="border px-2 py-1">Guru Pengisi</th>
+                    <!-- <th class="border px-2 py-1">Guru Pengisi</th> -->
                 </tr>
             </thead>
             <tbody>
@@ -78,7 +78,7 @@
                         <td class="border px-2 py-1">{{ $row->student->nis ?? '-' }}</td>
                         <td class="border px-2 py-1">{{ $row->student->name ?? '-' }}</td>
                         <td class="border px-2 py-1 capitalize">{{ $row->status }}</td>
-                        <td class="border px-2 py-1">{{ $row->teacher->name ?? '-' }}</td>
+                        <!-- <td class="border px-2 py-1">{{ $row->teacher->name ?? '-' }}</td> -->
                     </tr>
                 @empty
                     <tr>

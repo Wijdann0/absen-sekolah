@@ -7,6 +7,8 @@ use App\Http\Controllers\Admin\TeacherController;
 use App\Http\Controllers\Admin\StudentController;
 use App\Http\Controllers\Admin\ClassController;
 use App\Http\Controllers\Admin\ReportController;
+use App\Http\Controllers\Admin\AttendanceSettingController;
+
 
 use App\Http\Controllers\Teacher\DashboardController as TeacherDashboard;
 use App\Http\Controllers\Teacher\AttendanceController as TeacherAttendanceController;
@@ -74,6 +76,12 @@ Route::middleware(['auth', 'role:admin'])
         Route::get('reports/teachers', [ReportController::class, 'teacher'])->name('reports.teachers');
         Route::get('reports/students/export', [ReportController::class, 'exportStudents'])->name('reports.students.export');
         Route::get('reports/teachers/export', [ReportController::class, 'exportTeachers'])->name('reports.teachers.export');
+
+        Route::get('settings/attendance', [AttendanceSettingController::class, 'edit'])
+            ->name('settings.attendance.edit');
+
+        Route::post('settings/attendance', [AttendanceSettingController::class, 'update'])
+            ->name('settings.attendance.update');
     });
 
 // ======================== TEACHER ========================
@@ -87,6 +95,9 @@ Route::middleware(['auth', 'role:teacher'])
         Route::get('/attendance/students', [TeacherAttendanceController::class, 'index'])->name('attendance.students.index');
         Route::get('/attendance/students/{class}/create', [TeacherAttendanceController::class, 'create'])->name('attendance.students.create');
         Route::post('/attendance/students/{class}', [TeacherAttendanceController::class, 'store'])->name('attendance.students.store');
+
+        Route::get('/attendance/students/{class}/report', [TeacherAttendanceController::class, 'report'])
+        ->name('attendance.students.report');
 
         Route::get('/attendance/me', [TeacherAttendanceController::class, 'myAttendance'])->name('attendance.me');
         Route::post('/attendance/me/check-in', [TeacherAttendanceController::class, 'checkIn'])->name('attendance.me.checkin');
